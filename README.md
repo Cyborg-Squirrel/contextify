@@ -2,7 +2,7 @@
 
 ## Description
 
-Contextify is a Python project that scans a directory, directory recursively, or a single file. It supports creating image summaries using LLMs with vision capabilities, stores them, and allows user editing of these summaries before sending them to an embedding LLM. Embeddings are saved to Chroma and queried to support AI prompts. 
+Contextify is a Python project that scans a single directory, a root directory and all subdirectories, or a single file. It supports creating image summaries using LLMs with vision capabilities, stores them, and allows user editing of these summaries before sending them to an embedding LLM. Embeddings are saved to Chroma and queried to support AI prompts. 
 Requirements 
 
 ## Requirements
