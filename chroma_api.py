@@ -3,6 +3,8 @@
 chroma_api.py - reads and writes data to ChromaDb
 """
 
+from typing import Optional
+
 import chromadb
 from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT, Settings
 
@@ -26,16 +28,15 @@ class ChromaApi:
             f"{self.collection_base_name}-{context_name}"
         )
 
-    def get_file(self, relative_file_path: str, collection: str):
+    def get_file(self, relative_file_path: str, collection: str) -> Optional[chromadb.GetResult]:
         """Gets the file from ChromaDb if it exists."""
         collection = self._get_collection(collection)
-        results = collection.query(
-            n_results=1,
+        result = collection.get(
             where={"source": {"$eq": relative_file_path}},
-            include=["documents", "metadatas", "distances"]
+            include=["documents", "metadatas"]
         )
-        if len(results) > 0:
-            return results[0]
+        if len(result["ids"]) > 0:
+            return result
         return None
 
     # pylint: disable=too-many-arguments,too-many-positional-arguments

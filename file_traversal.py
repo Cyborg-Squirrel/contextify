@@ -51,7 +51,6 @@ class FileTraversal:
                 full_file_path = Path(os.path.join(root, file))
                 if not full_file_path.is_dir():
                     result = re.search(include_pattern, file)
-                    print(f"file {full_file_path} result {result}")
                     if result is not None:
                         file_hash = self._get_file_hash(full_file_path)
                         if file_hash is not None:

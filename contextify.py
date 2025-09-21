@@ -29,7 +29,7 @@ class Contextify():
                 relative_path = str(file.relative_path)
                 chroma_file = self.chroma_api.get_file(relative_path, context)
                 if chroma_file is not None:
-                    if not chroma_file["metadata"]["hash"] == file.file_hash:
+                    if not chroma_file["metadatas"]["hash"] == file.file_hash:
                         files.append(file)
         return new_files
 
