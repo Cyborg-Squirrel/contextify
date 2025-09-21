@@ -16,7 +16,6 @@ class ChromaApi:
 
     def __init__(self):
         self.client = chromadb.PersistentClient(
-            path="./chroma",
             settings=Settings(),
             tenant=DEFAULT_TENANT,
             database=DEFAULT_DATABASE,

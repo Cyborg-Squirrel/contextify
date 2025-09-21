@@ -3,6 +3,8 @@
 file_traversal.py - fetches files patching a regex and reads file contents.
 """
 import hashlib
+import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -25,33 +27,36 @@ class MatchedFile:
 class FileTraversal:
     """Class for performing file operations"""
 
-    def traverse_file_tree(self, root: str, include_pattern: str) -> list[MatchedFile]:
+    def traverse_file_tree(self, search_root: str, include_pattern: str) -> list[MatchedFile]:
         """
-        Walk the directory tree rooted at *root* and return a list of all
+        Walk the directory tree rooted at *search_root* and return a list of all
         files which do not match the *include_pattern*.
 
         Parameters
         ----------
-        root : str
+        search_root : str
             The root directory to start the walk from.
         include_pattern : str
             The regex of files to include.
         """
-        root_path = Path(root)
+        root_path = Path(search_root)
         if not root_path.is_dir():
-            raise NotADirectoryError(f"'{root}' is not a directory or does not exist.")
+            print(f"'{search_root}' is not a directory or does not exist.")
+            return []
 
         matched_files = []
 
-        # Use rglob for a simple recursive pattern match
-        files = root_path.rglob(include_pattern)
-        for file in iter(files):
-            file_hash = self._get_file_hash(file)
-            if file_hash is not None:
-                relative_path = file.relative_to(root)
-                matched_files.append(MatchedFile(file, relative_path, file_hash))
-            else:
-                print(f"Error reading file `{file}`")
+        for root, _, files in os.walk(search_root):
+            for file in files:
+                full_file_path = Path(os.path.join(root, file))
+                if not full_file_path.is_dir():
+                    result = re.search(include_pattern, file)
+                    if result is not None:
+                        file_hash = self._get_file_hash(full_file_path)
+                        if file_hash is not None:
+                            relative_path = full_file_path.relative_to(root_path)
+                            matched_files.append(MatchedFile(full_file_path,
+                                                             relative_path, file_hash))
 
         return matched_files
 
@@ -66,7 +71,8 @@ class FileTraversal:
                     h.update(chunk)
             return h.hexdigest()
         # pylint: disable=broad-exception-caught
-        except Exception:
+        except Exception as ex:
+            print(f"Encountered error {str(ex)} while making a hash of {str(path)}")
             return None
 
     def read_file_contents(self, path: Path) -> Optional[str]:
@@ -75,18 +81,20 @@ class FileTraversal:
         is an error reading the file.
         """
         if path.is_dir():
+            print(f"`{path}` is a directory, skipping.")
             return None
         absolute_path = str(path)
 
         try:
-            if absolute_path.endswith("pdf"):
+            if absolute_path.endswith(".pdf"):
                 return self._extract_text_from_pdf(path)
             if absolute_path.endswith('.docx'):
                 return self._extract_text_from_docx(path)
             with path.open("r", encoding="utf-8") as file:
                 return file.read()
         # pylint: disable=broad-exception-caught
-        except Exception:
+        except Exception as ex:
+            print(f"Encountered error {str(ex)} while reading the contents of {str(path)}")
             return None
 
     def _extract_text_from_pdf(self, path: Path) -> str:

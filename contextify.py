@@ -48,19 +48,31 @@ class Contextify():
 
 def main():
     """The main method"""
-    config = json.loads("config.json")
+    config = {}
+    with open('config.json', 'r', encoding='utf-8') as file:
+        config = json.load(file)
     ollama_url = config["ollamaUrl"]
     contexts = config["contexts"]
     embedding_model = config["embeddingModel"]
+
+    print(f"ollama url: {ollama_url}")
+    print(f"embedding model: {embedding_model}")
+
     contextify = Contextify(ollama_url, embedding_model)
+
     for context in iter(contexts):
         roots = context["roots"]
         include_pattern = context["includePattern"]
-        for root in iter(roots):
-            new_files = contextify.get_new_files(context, root, include_pattern)
-            for new_file in iter(new_files):
-                contextify.save_file(new_file, context)
+        context_name = context["name"]
 
+        print(f"Processing context: {context_name}")
+        print(f"Roots: {roots}")
+        print(f"Include pattern: {include_pattern}")
+
+        new_files = contextify.get_new_files(roots, context, include_pattern)
+        for new_file in iter(new_files):
+            print(f"new file {new_file}")
+            # contextify.save_file(new_file, context)
 
 if __name__ == "__main__":
     main()
