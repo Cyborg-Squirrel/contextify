@@ -69,7 +69,7 @@ def main():
         print(f"Roots: {roots}")
         print(f"Include pattern: {include_pattern}")
 
-        new_files = contextify.get_new_files(roots, context, include_pattern)
+        new_files = contextify.get_new_files(roots, context_name, include_pattern)
         for new_file in iter(new_files):
             print(f"new file {new_file}")
             # contextify.save_file(new_file, context)
