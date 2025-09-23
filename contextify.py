@@ -2,6 +2,7 @@
 """A script to embed files to enable RAG for AI prompts"""
 
 import json
+from typing import Optional
 
 from ollama import Client
 
@@ -20,16 +21,41 @@ class Contextify():
         self.ollama_client = Client(host=ollama_url)
         self.embedding_model = embedding_model
 
-    def get_new_files(self, roots: list[str], context: str, include_pattern: str):
-        """Gets all new or changed files in a root directory patching a specified pattern"""
+    def _traverse_file_trees(self, roots: list[str], include_pattern: str) -> list[MatchedFile]:
+        """
+        Traverses the specified root directories.
+        
+        returns a list of files matching the include pattern.
+        """
         new_files = []
         for root in iter(roots):
             files = self.file_traversal.traverse_file_tree(root, include_pattern)
-            for file in iter(files):
-                relative_path = str(file.relative_path)
-                chroma_file = self.chroma_api.get_file(relative_path, context)
-                if chroma_file is not None:
-                    if not chroma_file["metadatas"]["hash"] == file.file_hash:
+            files.extend(files)
+        return new_files
+
+    def get_new_or_changed_files(self, roots: list[str], context: str,
+                                 include_pattern: str) -> list[MatchedFile]:
+        """
+        Gets all new or changed files in a root directory patching a specified pattern.
+        """
+        new_files = []
+        files = self._traverse_file_trees(roots, include_pattern)
+        for file in iter(files):
+            relative_path = str(file.relative_path)
+            chroma_file = self.chroma_api.get_file(relative_path, context)
+            if chroma_file is not None:
+                metadatas = chroma_file.get("metadatas")
+                metadata_hash = Optional[str]
+                if metadatas is not None:
+                    for metadata in metadatas:
+                        if "hash" in metadata.keys():
+                            metadata_hash = metadata["hash"]
+                            break
+                    if metadata_hash != file.file_hash:
+                        print(f"{file.absolute_path} has changed")
+                        files.append(file)
+                    else:
+                        print(f"{file.absolute_path} is new")
                         files.append(file)
         return new_files
 
@@ -69,7 +95,7 @@ def main():
         print(f"Roots: {roots}")
         print(f"Include pattern: {include_pattern}")
 
-        new_files = contextify.get_new_files(roots, context_name, include_pattern)
+        new_files = contextify.get_new_or_changed_files(roots, context_name, include_pattern)
         for new_file in iter(new_files):
             print(f"new file {new_file}")
             # contextify.save_file(new_file, context)

@@ -14,8 +14,6 @@ class ChromaApi:
     API class for interfacing with ChromaDb
     """
     collection_base_name = "contextify"
-    client: chromadb.PersistentClient
-
     def __init__(self):
         self.client = chromadb.PersistentClient(
             settings=Settings(),
@@ -23,14 +21,14 @@ class ChromaApi:
             database=DEFAULT_DATABASE,
         )
 
-    def _get_collection(self, context_name: str):
+    def _get_collection(self, context_name: str) -> chromadb.Collection:
         return self.client.get_or_create_collection(
             f"{self.collection_base_name}-{context_name}"
         )
 
-    def get_file(self, relative_file_path: str, collection: str) -> Optional[chromadb.GetResult]:
+    def get_file(self, relative_file_path: str, context_name: str) -> Optional[chromadb.GetResult]:
         """Gets the file from ChromaDb if it exists."""
-        collection = self._get_collection(collection)
+        collection = self._get_collection(context_name)
         result = collection.get(
             where={"source": {"$eq": relative_file_path}},
             include=["documents", "metadatas"]
