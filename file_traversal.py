@@ -2,6 +2,7 @@
 """
 file_traversal.py - fetches files patching a regex and reads file contents.
 """
+import base64
 import hashlib
 import os
 import re
@@ -97,6 +98,10 @@ class FileTraversal:
             print(f"Encountered error {str(ex)} while reading the contents of {str(path)}")
             return None
 
+    def extract_base64_from_img(self, path: Path) -> str:
+        with open(path, "rb") as file:
+            return base64.b64encode(file.read()).decode('utf-8')
+    
     def _extract_text_from_pdf(self, path: Path) -> str:
         """Extract text content from PDF files"""
         with path.open('rb') as file:
