@@ -108,8 +108,9 @@ class FileTraversal:
 
     def _extract_text_from_docx(self, path: Path) -> str:
         """Extract text content from Word documents"""
-        doc = Document(path)
         text = ""
-        for paragraph in doc.paragraphs:
-            text += paragraph.text + "\n"
+        with path.open('rb') as file:
+            doc = Document(file)
+            for paragraph in doc.paragraphs:
+                text += paragraph.text + "\n"
         return text.strip()
