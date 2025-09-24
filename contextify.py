@@ -68,9 +68,9 @@ class Contextify():
         file_contents = self.file_traversal.read_file_contents(file.absolute_path)
         if file_contents is not None:
             response = self.ollama_client.embed(
-                 model=self.embedding_model,
-                 input=file_contents,
-                 )
+                model=self.embedding_model,
+                input=file_contents,
+                )
             embeddings = response["embeddings"]
             self.chroma_api.add_file(context, str(relative_path), file.file_hash,
                                 file_contents, 0, embeddings)
@@ -99,8 +99,8 @@ def main():
         print(f"Include pattern: {include_pattern}")
         
         new_files = contextify.get_new_or_changed_files(roots, context_name, include_pattern)
-        # for new_file in iter(new_files):
-            # contextify.save_file(new_file, context)
+        for new_file in iter(new_files):
+            contextify.save_file(new_file, context)
 
 if __name__ == "__main__":
     main()
