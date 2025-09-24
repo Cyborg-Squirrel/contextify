@@ -99,9 +99,10 @@ class FileTraversal:
             return None
 
     def extract_base64_from_img(self, path: Path) -> str:
+        """Extracts the raw data from an image file and returns it as a base64 string"""
         with open(path, "rb") as file:
             return base64.b64encode(file.read()).decode('utf-8')
-    
+
     def _extract_text_from_pdf(self, path: Path) -> str:
         """Extract text content from PDF files"""
         with path.open('rb') as file:
