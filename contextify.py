@@ -30,7 +30,7 @@ class Contextify():
         new_files = []
         for root in iter(roots):
             files = self.file_traversal.traverse_file_tree(root, include_pattern)
-            files.extend(files)
+            new_files.extend(files)
         return new_files
 
     def get_new_or_changed_files(self, roots: list[str], context: str,
@@ -40,7 +40,7 @@ class Contextify():
         """
         new_files = []
         files = self._traverse_file_trees(roots, include_pattern)
-        for file in iter(files):
+        for file in files:
             relative_path = str(file.relative_path)
             chroma_file = self.chroma_api.get_file(relative_path, context)
             if chroma_file is not None:
@@ -52,11 +52,14 @@ class Contextify():
                             metadata_hash = metadata["hash"]
                             break
                     if metadata_hash != file.file_hash:
-                        print(f"{file.absolute_path} has changed")
-                        files.append(file)
+                        # print(f"{file.absolute_path} has changed")
+                        new_files.append(file)
                     else:
-                        print(f"{file.absolute_path} is new")
-                        files.append(file)
+                        # print(f"{file.absolute_path} is new")
+                        new_files.append(file)
+            else:
+                # print(f"{file.absolute_path} is new")
+                new_files.append(file)
         return new_files
 
     def save_file(self, file: MatchedFile, context: str):
@@ -94,10 +97,9 @@ def main():
         print(f"Processing context: {context_name}")
         print(f"Roots: {roots}")
         print(f"Include pattern: {include_pattern}")
-
+        
         new_files = contextify.get_new_or_changed_files(roots, context_name, include_pattern)
-        for new_file in iter(new_files):
-            print(f"new file {new_file}")
+        # for new_file in iter(new_files):
             # contextify.save_file(new_file, context)
 
 if __name__ == "__main__":
