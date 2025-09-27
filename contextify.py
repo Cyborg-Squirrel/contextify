@@ -34,11 +34,14 @@ class Contextify():
         return new_files
 
     def get_new_or_changed_files(self, roots: list[str], context: str,
-                                 include_pattern: str) -> list[MatchedFile]:
+                                 include_pattern: str) -> dict[str, list[MatchedFile]]:
         """
         Gets all new or changed files in a root directory patching a specified pattern.
         """
+        file_dict = {}
         new_files = []
+        updated_files = []
+        changed_files = []
         files = self._traverse_file_trees(roots, include_pattern)
         for file in files:
             relative_path = str(file.relative_path)
@@ -46,13 +49,18 @@ class Contextify():
             if chroma_file is not None:
                 metadatas = chroma_file.get("metadatas")
                 metadata_hash = Optional[str]
+                total_pages = Optional[str]
                 if metadatas is not None:
                     for metadata in metadatas:
                         if "hash" in metadata.keys():
                             metadata_hash = metadata["hash"]
+                        if "total_pages" in metadata.keys():
+                            total_pages = metadata["total_pages"]
+                        if metadata_hash is not None and total_pages is not None:
                             break
                     if metadata_hash != file.file_hash:
-                        # print(f"{file.absolute_path} has changed")
+                        # TODO total_pages check
+                        # print(f"{file.absolute_path} has been updated")
                         new_files.append(file)
                     else:
                         # print(f"{file.absolute_path} is new")
@@ -60,7 +68,11 @@ class Contextify():
             else:
                 # print(f"{file.absolute_path} is new")
                 new_files.append(file)
-        return new_files
+        return {
+            'new': new_files,
+            'updated': updated_files,
+            'changed': changed_files
+        }
 
     def save_file(self, file: MatchedFile, context: str):
         """Generates and saves file embeddings in ChromaDb"""
@@ -73,7 +85,7 @@ class Contextify():
                 )
             embeddings = response["embeddings"]
             self.chroma_api.add_file(context, str(relative_path), file.file_hash,
-                                file_contents, 0, embeddings)
+                                file_contents, 0, 1, embeddings)
 
 def main():
     """The main method"""
@@ -98,9 +110,10 @@ def main():
         print(f"Roots: {roots}")
         print(f"Include pattern: {include_pattern}")
         
-        new_files = contextify.get_new_or_changed_files(roots, context_name, include_pattern)
+        files_dict = contextify.get_new_or_changed_files(roots, context_name, include_pattern)
+        new_files = files_dict['new']
         for new_file in iter(new_files):
-            contextify.save_file(new_file, context)
+            contextify.save_file(new_file, context_name)
 
 if __name__ == "__main__":
     main()
