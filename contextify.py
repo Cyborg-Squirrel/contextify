@@ -153,6 +153,10 @@ def main():
             files_dict = contextify.get_new_or_changed_files(roots, context_name, include_pattern)
             new_files = files_dict['new']
             updated_files = files_dict['updated']
+
+            print(f"New files {new_files}")
+            print(f"Updated files {updated_files}")
+            
             for new_file in iter(new_files):
                 contextify.save_file(new_file, context_name)
             for updated_file in iter(updated_files):
