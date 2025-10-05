@@ -23,9 +23,9 @@ class Contextify():
 
     def _traverse_file_trees(self, roots: list[str], include_pattern: str) -> list[MatchedFile]:
         """
-        Traverses the specified root directories.
+        Traverses the specified root directories `roots`.
         
-        returns a list of files matching the include pattern.
+        Returns a list of files matching the `include_pattern` regex.
         """
         new_files = []
         for root in iter(roots):
@@ -36,12 +36,11 @@ class Contextify():
     def get_new_or_changed_files(self, roots: list[str], context: str,
                                  include_pattern: str) -> dict[str, list[MatchedFile]]:
         """
-        Gets all new or changed files in a root directory patching a specified pattern.
+        Gets all new or changed files in a root directory with filenames matching a
+        specified `include_pattern` regex.
         """
-        file_dict = {}
         new_files = []
         updated_files = []
-        changed_files = []
         files = self._traverse_file_trees(roots, include_pattern)
         for file in files:
             relative_path = str(file.relative_path)
@@ -59,9 +58,8 @@ class Contextify():
                         if metadata_hash is not None and total_pages is not None:
                             break
                     if metadata_hash != file.file_hash:
-                        # TODO total_pages check
                         # print(f"{file.absolute_path} has been updated")
-                        new_files.append(file)
+                        updated_files.append(file)
                     else:
                         # print(f"{file.absolute_path} is new")
                         new_files.append(file)
@@ -70,22 +68,38 @@ class Contextify():
                 new_files.append(file)
         return {
             'new': new_files,
-            'updated': updated_files,
-            'changed': changed_files
+            'updated': updated_files
         }
+
+    def _split_into_chunks(self, text: str, max_lines: int = 1000) -> list[str]:
+        """Split `text` into a list of substrings, each containing at most `max_lines` lines."""
+        lines = text.splitlines(True)
+        chunks = []
+        for i in range(0, len(lines), max_lines):
+            chunk_lines = lines[i:i + max_lines]
+            chunk_text = ''.join(chunk_lines)
+            chunks.append(chunk_text)
+        return chunks
+
+    def delete_file(self, file: MatchedFile, context: str):
+        """Deletes the file from ChromaDB matching `file` in context `context`."""
+        self.chroma_api.delete_file(context, str(file.relative_path))
 
     def save_file(self, file: MatchedFile, context: str):
         """Generates and saves file embeddings in ChromaDb"""
         relative_path = file.relative_path
         file_contents = self.file_traversal.read_file_contents(file.absolute_path)
         if file_contents is not None:
-            response = self.ollama_client.embed(
-                model=self.embedding_model,
-                input=file_contents,
-                )
-            embeddings = response["embeddings"]
-            self.chroma_api.add_file(context, str(relative_path), file.file_hash,
-                                file_contents, 0, 1, embeddings)
+            file_contents_as_list = self._split_into_chunks(file_contents)
+            file_contents_as_list_len = len(file_contents_as_list)
+            for i in range(file_contents_as_list_len):
+                response = self.ollama_client.embed(
+                    model=self.embedding_model,
+                    input=file_contents,
+                    )
+                embeddings = response["embeddings"]
+                self.chroma_api.add_file(context, str(relative_path), file.file_hash,
+                                         file_contents, i, file_contents_as_list_len, embeddings)
 
 def main():
     """The main method"""
@@ -109,11 +123,15 @@ def main():
         print(f"Processing context: {context_name}")
         print(f"Roots: {roots}")
         print(f"Include pattern: {include_pattern}")
-        
+
         files_dict = contextify.get_new_or_changed_files(roots, context_name, include_pattern)
         new_files = files_dict['new']
+        updated_files = files_dict['updated']
         for new_file in iter(new_files):
             contextify.save_file(new_file, context_name)
+        for updated_file in iter(updated_files):
+            contextify.delete_file(updated_file, context_name)
+            contextify.save_file(updated_file, context_name)
 
 if __name__ == "__main__":
     main()

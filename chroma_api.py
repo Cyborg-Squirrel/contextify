@@ -61,7 +61,9 @@ class ChromaApi:
         """Updates a file in ChromaDB"""
         file = self.get_file(relative_file_path, context_name)
         if file is None:
-            raise Exception(f"Cannot update a file which has not been saved in the db `{relative_file_path}`")
+            # pylint: disable=broad-exception-raised
+            raise Exception(f"""Cannot update a file which has not been saved in the db
+                            `{relative_file_path}`""")
 
         collection = self._get_collection(context_name)
         collection.update(
@@ -70,6 +72,7 @@ class ChromaApi:
             metadatas=[{
                 "source": relative_file_path,
                 "chunk_id": page_number,
+                "total_chunks": total_pages,
                 "hash": file_hash,
             }],
             ids=[f"{relative_file_path}_{page_number}"]
