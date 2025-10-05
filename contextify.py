@@ -61,9 +61,6 @@ class Contextify():
                     if metadata_hash != file.file_hash:
                         # print(f"{file.absolute_path} has been updated")
                         updated_files.append(file)
-                    else:
-                        # print(f"{file.absolute_path} is new")
-                        new_files.append(file)
             else:
                 # print(f"{file.absolute_path} is new")
                 new_files.append(file)
@@ -153,9 +150,6 @@ def main():
             files_dict = contextify.get_new_or_changed_files(roots, context_name, include_pattern)
             new_files = files_dict['new']
             updated_files = files_dict['updated']
-
-            print(f"New files {new_files}")
-            print(f"Updated files {updated_files}")
 
             for new_file in iter(new_files):
                 contextify.save_file(new_file, context_name)
