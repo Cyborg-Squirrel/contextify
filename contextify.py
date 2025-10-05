@@ -156,7 +156,7 @@ def main():
 
             print(f"New files {new_files}")
             print(f"Updated files {updated_files}")
-            
+
             for new_file in iter(new_files):
                 contextify.save_file(new_file, context_name)
             for updated_file in iter(updated_files):
