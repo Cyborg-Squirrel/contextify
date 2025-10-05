@@ -16,19 +16,19 @@ class ChromaApi:
     def __init__(self):
         self.client = chromadb.PersistentClient(path="chroma/")
 
-    def query(self, context_name: str, embeddings):
+    def query(self, context_name: str, embeddings, n_results=1):
         """Queries the `conext_name` context from ChromaDB with `query`"""
         collection = self.client.get_collection(context_name)
-        return collection.query(query_embeddings=embeddings, n_results=1)
+        return collection.query(query_embeddings=embeddings, n_results=n_results)
 
     def get_file(self, relative_file_path: str, context_name: str) -> Optional[chromadb.GetResult]:
         """Gets the file from ChromaDB if it exists."""
         try:
             collection = self.client.get_collection(context_name)
             result = collection.get(
-            where={"source": {"$eq": relative_file_path}},
-            include=["documents", "metadatas"]
-            )
+                where={"source": {"$eq": relative_file_path}},
+                include=["documents", "metadatas"]
+                )
             if len(result["ids"]) > 0:
                 return result
             return None
@@ -55,7 +55,7 @@ class ChromaApi:
     def delete_file(self, context_name: str, relative_file_path: str):
         """Deletes a file in ChromaDB"""
         collection = self.client.get_collection(context_name)
-        collection.delete(where={"$and": [{"source": {"$eq": relative_file_path}}]})
+        collection.delete(where={"source": {"$eq": relative_file_path}})
 
     def update_file(self, context_name: str, relative_file_path: str, file_hash: str,
                  contents: str, page_number: int, total_pages: int, embeddings: list[float]):

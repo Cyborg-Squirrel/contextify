@@ -102,14 +102,14 @@ class Contextify():
                 self.chroma_api.add_file(context, str(relative_path), file.file_hash,
                                          file_contents, i, file_contents_as_list_len, embeddings)
 
-    def query(self, query: str, context: str):
+    def query(self, query: str, context: str, n_results: int):
         """Queries the context `context` in ChromaDB database with `query`"""
         ollama_response = self.ollama_client.embed(
             model=self.embedding_model,
             input=query
         )
         print(ollama_response)
-        return self.chroma_api.query(context, ollama_response['embeddings'])
+        return self.chroma_api.query(context, ollama_response['embeddings'], n_results=n_results)
 
 # pylint: disable=too-many-locals
 def main():
@@ -117,6 +117,8 @@ def main():
     parser = argparse.ArgumentParser(description="Demo")
     parser.add_argument('-q', '--query', help='The query (prompt) to use')
     parser.add_argument('-c', '--context', help="""Specifies the context to use for a query""")
+    parser.add_argument('-n', '--n-results', type=int, help="""
+                        Specifies the max number of documents to return from the query""")
     parser.add_argument('-s', '--scan', action='store_true', help="""
                         Scans the configured directories and populates the ChromaDB collections""")
     args = parser.parse_args()
@@ -134,8 +136,10 @@ def main():
     contextify = Contextify(ollama_url, embedding_model)
 
     if args.query is not None and args.context is not None:
-        result = contextify.query(args.query, args.context)
-        print(result)
+        n_results = args.n_results if args.n_results is not None else 1
+        print(f"Querying {args.context} with query {args.query} with n_results {n_results}")
+        results = contextify.query(args.query, args.context, n_results)
+        print(json.dumps(results))
     if args.scan:
         for context in iter(contexts):
             roots = context["roots"]
@@ -151,9 +155,9 @@ def main():
             updated_files = files_dict['updated']
             for new_file in iter(new_files):
                 contextify.save_file(new_file, context_name)
-                for updated_file in iter(updated_files):
-                    contextify.delete_file(updated_file, context_name)
-                    contextify.save_file(updated_file, context_name)
+            for updated_file in iter(updated_files):
+                contextify.delete_file(updated_file, context_name)
+                contextify.save_file(updated_file, context_name)
 
 if __name__ == "__main__":
     main()
