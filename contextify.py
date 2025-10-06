@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import re
 from typing import Optional
 
 from ollama import Client
@@ -69,8 +70,10 @@ class Contextify():
             'updated': updated_files
         }
 
-    def _split_into_chunks(self, text: str, max_lines: int = 1000) -> list[str]:
-        """Split `text` into a list of substrings, each containing at most `max_lines` lines."""
+    def _split_into_chunks(self, text: str, max_lines: int = 100) -> list[str]:
+        """
+        Split `text` into a list of substrings, each containing at most `max_lines` lines.
+        """
         lines = text.splitlines(True)
         chunks = []
         for i in range(0, len(lines), max_lines):
@@ -93,11 +96,11 @@ class Contextify():
             for i in range(file_contents_as_list_len):
                 response = self.ollama_client.embed(
                     model=self.embedding_model,
-                    input=file_contents,
+                    input=file_contents_as_list[i],
                     )
                 embeddings = response["embeddings"]
                 self.chroma_api.add_file(context, str(relative_path), file.file_hash,
-                                         file_contents, i, file_contents_as_list_len, embeddings)
+                                         file_contents_as_list[i], i, file_contents_as_list_len, embeddings)
 
     def query(self, query: str, context: str, n_results: int):
         """Queries the context `context` in ChromaDB database with `query`"""
