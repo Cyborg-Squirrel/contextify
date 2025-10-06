@@ -105,7 +105,6 @@ class Contextify():
             model=self.embedding_model,
             input=query
         )
-        print(ollama_response)
         return self.chroma_api.query(context, ollama_response['embeddings'], n_results=n_results)
 
 # pylint: disable=too-many-locals
