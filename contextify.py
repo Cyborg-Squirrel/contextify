@@ -3,7 +3,6 @@
 
 import argparse
 import json
-import re
 from typing import Optional
 
 from ollama import Client
@@ -70,15 +69,22 @@ class Contextify():
             'updated': updated_files
         }
 
-    def _split_into_chunks(self, text: str, max_lines: int = 100) -> list[str]:
+    def _split_into_chunks(self, text: str, min_lines: int = 100) -> list[str]:
         """
         Split `text` into a list of substrings, each containing at most `max_lines` lines.
         """
         lines = text.splitlines(True)
         chunks = []
-        for i in range(0, len(lines), max_lines):
-            chunk_lines = lines[i:i + max_lines]
-            chunk_text = ''.join(chunk_lines)
+        total_lines = len(lines)
+        for i in range(0, total_lines, min_lines):
+            remaining_lines = total_lines - i
+            # If the next chunk is less than half of the chunk size
+            # add it to the current chunk then exit the loop
+            if remaining_lines < min_lines / 2 and total_lines > min_lines:
+                chunk_text = ''.join(lines[i:i + remaining_lines])
+                chunks.append(chunk_text)
+                break
+            chunk_text = ''.join(lines[i:i + min_lines])
             chunks.append(chunk_text)
         return chunks
 
@@ -86,12 +92,12 @@ class Contextify():
         """Deletes the file from ChromaDB matching `file` in context `context`."""
         self.chroma_api.delete_file(context, str(file.relative_path))
 
-    def save_file(self, file: MatchedFile, context: str):
+    def save_file(self, file: MatchedFile, context: str, min_lines: int):
         """Generates and saves file embeddings in ChromaDb"""
         relative_path = file.relative_path
         file_contents = self.file_traversal.read_file_contents(file.absolute_path)
         if file_contents is not None:
-            file_contents_as_list = self._split_into_chunks(file_contents)
+            file_contents_as_list = self._split_into_chunks(file_contents, min_lines)
             file_contents_as_list_len = len(file_contents_as_list)
             for i in range(file_contents_as_list_len):
                 response = self.ollama_client.embed(
@@ -100,7 +106,8 @@ class Contextify():
                     )
                 embeddings = response["embeddings"]
                 self.chroma_api.add_file(context, str(relative_path), file.file_hash,
-                                         file_contents_as_list[i], i, file_contents_as_list_len, embeddings)
+                                         file_contents_as_list[i], i, file_contents_as_list_len,
+                                         embeddings)
 
     def query(self, query: str, context: str, n_results: int):
         """Queries the context `context` in ChromaDB database with `query`"""
@@ -120,6 +127,9 @@ def main():
                         Specifies the max number of documents to return from the query""")
     parser.add_argument('-s', '--scan', action='store_true', help="""
                         Scans the configured directories and populates the ChromaDB collections""")
+    parser.add_argument('-m', '--min-lines', type=int, help="""
+                        Specifies the minimum number of lines of text to include in a ChromaDB document
+                        chunk when scanning.""")
     args = parser.parse_args()
 
     config = {}
@@ -144,20 +154,22 @@ def main():
             roots = context["roots"]
             include_pattern = context["includePattern"]
             context_name = context["name"]
+            min_lines = 50 if args.min_lines is None else args.min_lines
 
             print(f"Processing context: {context_name}")
             print(f"Roots: {roots}")
             print(f"Include pattern: {include_pattern}")
+            print(f"Minimum lines per chunk: {min_lines}")
 
             files_dict = contextify.get_new_or_changed_files(roots, context_name, include_pattern)
             new_files = files_dict['new']
             updated_files = files_dict['updated']
 
             for new_file in iter(new_files):
-                contextify.save_file(new_file, context_name)
+                contextify.save_file(new_file, context_name, min_lines)
             for updated_file in iter(updated_files):
                 contextify.delete_file(updated_file, context_name)
-                contextify.save_file(updated_file, context_name)
+                contextify.save_file(updated_file, context_name, min_lines)
 
 if __name__ == "__main__":
     main()
