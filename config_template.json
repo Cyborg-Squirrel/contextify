@@ -1,0 +1,13 @@
+{
+    "ollamaUrl": "",
+    "embeddingModel": "",
+    "contexts": [
+        {
+            "name": "",
+            "roots": [
+                ""
+            ],
+            "includePattern": ""
+        }
+    ]
+}
