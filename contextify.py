@@ -154,7 +154,7 @@ def main():
             roots = context["roots"]
             include_pattern = context["includePattern"]
             context_name = context["name"]
-            min_lines = 50 if args.min_lines is None else args.min_lines
+            min_lines = 100 if args.min_lines is None else args.min_lines
 
             print(f"Processing context: {context_name}")
             print(f"Roots: {roots}")
